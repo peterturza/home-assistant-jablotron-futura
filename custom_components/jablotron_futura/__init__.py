@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 import logging
 from this import d
-from config.custom_components.jablotron_futura.futura import Futura
+from .futura import Futura
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform

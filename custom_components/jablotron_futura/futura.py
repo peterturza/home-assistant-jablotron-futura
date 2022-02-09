@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from config.custom_components.jablotron_futura.const import (
+from .const import (
     DOMAIN,
     JABLOTRON,
     JABLOTRON_API,
@@ -12,7 +12,7 @@ from config.custom_components.jablotron_futura.const import (
     JABLOTRON_FUTURA_NAMESPACE,
     JABLOTRON_FUTURA_NAMESPACE_KEY,
 )
-from config.custom_components.jablotron_futura.errors import ApiAuthError
+from .errors import ApiAuthError
 from homeassistant import core
 from homeassistant.helpers import aiohttp_client
 from homeassistant.helpers.entity import DeviceInfo

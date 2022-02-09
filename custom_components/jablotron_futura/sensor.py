@@ -5,7 +5,7 @@ from datetime import date, datetime
 import logging
 from typing import Any
 
-from config.custom_components.jablotron_futura.futura import FuturaEntity
+from .futura import FuturaEntity
 from homeassistant.components.sensor import (
     STATE_CLASS_MEASUREMENT,
     SensorDeviceClass,

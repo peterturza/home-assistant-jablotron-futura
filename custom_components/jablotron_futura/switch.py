@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 
-from config.custom_components.jablotron_futura.futura import FuturaEntity
+from .futura import FuturaEntity
 from homeassistant.backports.enum import StrEnum
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
 

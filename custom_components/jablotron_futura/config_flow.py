@@ -6,8 +6,8 @@ from typing import Any
 
 import voluptuous as vol
 
-from config.custom_components.jablotron_futura.errors import ServiceNotFoundError
-from config.custom_components.jablotron_futura.futura import Futura
+from .errors import ServiceNotFoundError
+from .futura import Futura
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult

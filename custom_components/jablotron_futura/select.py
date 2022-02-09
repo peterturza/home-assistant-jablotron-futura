@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 
-from config.custom_components.jablotron_futura.futura import FuturaControlEntity
+from .futura import FuturaControlEntity
 from homeassistant.components.select import SelectEntity
 from homeassistant.const import DEVICE_CLASS_HUMIDITY, DEVICE_CLASS_POWER_FACTOR
 
