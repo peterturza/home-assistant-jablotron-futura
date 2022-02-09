@@ -1,0 +1,7 @@
+{
+	"name": "Jablotron Futura",
+	"content_in_root": false,
+	"country": ["EN"],
+	"homeassistant": "2022.2.0",
+	"render_readme": true
+}
