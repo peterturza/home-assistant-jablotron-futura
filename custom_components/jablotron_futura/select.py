@@ -1,4 +1,4 @@
-"""Example integration using DataUpdateCoordinator."""
+"""Select definitions for Jablotron Futura integration."""
 from __future__ import annotations
 
 import logging
@@ -13,7 +13,6 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    """Config entry example."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
@@ -31,12 +30,25 @@ class FuturaControlFanPowerEntity(FuturaControlEntity, SelectEntity):
     @property
     def options(self) -> list[str]:
         data = self.data()
-        return [
-            "off" if option == 0 else str(option)
+        device = self.coordinator.data["device"]
+        airflow_units = device["summary"]["airflow_units"]
+        airflows = [
+            "{} {}".format(airflow, airflow_units)
+            for airflow in device["summary"]["airflow"]
+        ]
+        if data["extended_properties"]["min"] == 0:
+            airflows.insert(0, "off")
+
+        options = [
+            option
             for option in range(
                 data["extended_properties"]["min"],
                 data["extended_properties"]["max"],
             )
+        ]
+        return [
+            "{} ({})".format(option, airflow)
+            for option, airflow in zip(options, airflows)
         ] + ["auto"]
 
     @property

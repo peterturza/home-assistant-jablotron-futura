@@ -1,4 +1,4 @@
-"""Main class definitions"""
+"""Futura class definitions"""
 from __future__ import annotations
 
 import logging
@@ -22,6 +22,8 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class FuturaCentralUnit:
+    """Represents Futura main unit"""
+
     def __init__(
         self,
         service_id: str,
@@ -50,6 +52,7 @@ class Futura:
         )
 
     async def authorize(self) -> None:
+        """Authorize user via API"""
         async with self._session.post(
             "{}/userAuthorize.json".format(JABLOTRON_API),
             json={
@@ -63,6 +66,7 @@ class Futura:
                 raise ApiAuthError
 
     async def sync(self):
+        """Get data from API"""
         await self.authorize()
         async with self._session.post(
             "{}/serviceListGet.json".format(JABLOTRON_API),
@@ -109,6 +113,8 @@ class Futura:
             return json
 
     async def set_control(self, control, value) -> None:
+        """Sets control value via API"""
+        await self.authorize()
         async with self._session.post(
             "{}/setDevice.json".format(JABLOTRON_API),
             json={
@@ -130,6 +136,8 @@ class Futura:
             return
 
     async def set_setting_extended_property(self, property, value) -> None:
+        """Sets extended property value via API"""
+        await self.authorize()
         async with self._session.post(
             "{}/setDevice.json".format(JABLOTRON_API),
             json={
@@ -151,7 +159,6 @@ class Futura:
 
 class FuturaEntity(CoordinatorEntity):
     def __init__(self, coordinator):
-        """Pass coordinator to CoordinatorEntity."""
         super().__init__(coordinator)
         self._futura = coordinator.futura
         self._central_unit = self._futura.central_unit()
@@ -178,7 +185,6 @@ class FuturaEntity(CoordinatorEntity):
 
 class FuturaControlEntity(FuturaEntity):
     def __init__(self, idx, device_class, coordinator):
-        """Pass coordinator to CoordinatorEntity."""
         super().__init__(coordinator)
         self._idx = idx
         self._device_class = device_class

@@ -54,6 +54,6 @@ class FuturaCoordinator(DataUpdateCoordinator):
             _LOGGER,
             name=DOMAIN,
             update_method=futura.sync,
-            update_interval=timedelta(minutes=2),
+            update_interval=timedelta(minutes=5),
         )
         self.futura = futura

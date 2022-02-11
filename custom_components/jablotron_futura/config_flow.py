@@ -6,7 +6,7 @@ from typing import Any
 
 import voluptuous as vol
 
-from .errors import ServiceNotFoundError
+from .errors import ApiAuthError, ServiceNotFoundError
 from .futura import Futura
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
@@ -57,6 +57,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         try:
             info = await validate_input(self.hass, user_input)
+        except ApiAuthError as ex:
+            _LOGGER.exception(ex)
+            errors["base"] = "invalid_auth"
+        except ServiceNotFoundError as ex:
+            _LOGGER.exception(ex)
+            errors["base"] = "service_not_found"
         except Exception as ex:  # pylint: disable=broad-except
             _LOGGER.exception(ex)
             errors["base"] = "unknown"

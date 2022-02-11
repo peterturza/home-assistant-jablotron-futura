@@ -1,4 +1,4 @@
-"""Example integration using DataUpdateCoordinator."""
+"""Sensor definitions for Jablotron Futura integration."""
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -26,7 +26,6 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    """Config entry example."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
@@ -52,7 +51,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 class FuturaSummarySensorEntity(FuturaEntity, SensorEntity):
     def __init__(self, idx, device_class, coordinator):
-        """Pass coordinator to CoordinatorEntity."""
         super().__init__(coordinator)
         self._idx = idx
         self._device_class = device_class
@@ -84,7 +82,6 @@ class FuturaSummarySensorEntity(FuturaEntity, SensorEntity):
 
 class FuturaPeripherySensorEnity(FuturaEntity, SensorEntity):
     def __init__(self, idx, device_class, coordinator):
-        """Pass coordinator to CoordinatorEntity."""
         super().__init__(coordinator)
         self._idx = idx
         self._device_class = device_class

@@ -1,4 +1,4 @@
-"""Example integration using DataUpdateCoordinator."""
+"""Switch definitions for Jablotron Futura integration."""
 from __future__ import annotations
 
 import logging
@@ -13,7 +13,6 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    """Config entry example."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
@@ -36,7 +35,6 @@ class FuturaEnabledEnum(StrEnum):
 
 class FuturaSettingsSwitchEntity(FuturaEntity, SwitchEntity):
     def __init__(self, idx, device_class, coordinator):
-        """Pass coordinator to CoordinatorEntity."""
         super().__init__(coordinator)
         self._idx = idx
         self._device_class = device_class
