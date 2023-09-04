@@ -5,7 +5,7 @@ import logging
 
 from .futura import FuturaControlEntity
 from homeassistant.components.select import SelectEntity
-from homeassistant.const import DEVICE_CLASS_HUMIDITY, DEVICE_CLASS_POWER_FACTOR
+from homeassistant.components.number import NumberDeviceClass
 
 from .const import DOMAIN
 
@@ -25,7 +25,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 class FuturaControlFanPowerEntity(FuturaControlEntity, SelectEntity):
     def __init__(self, coordinator):
-        super().__init__("control_fan_power", DEVICE_CLASS_POWER_FACTOR, coordinator)
+        super().__init__(
+            "control_fan_power", NumberDeviceClass.POWER_FACTOR, coordinator
+        )
 
     @property
     def options(self) -> list[str]:
@@ -63,7 +65,7 @@ class FuturaControlFanPowerEntity(FuturaControlEntity, SelectEntity):
 
 class FuturaControlHumidityEntity(FuturaControlEntity, SelectEntity):
     def __init__(self, coordinator):
-        super().__init__("control_humidity", DEVICE_CLASS_HUMIDITY, coordinator)
+        super().__init__("control_humidity", NumberDeviceClass.HUMIDITY, coordinator)
 
     @property
     def options(self) -> list[str]:

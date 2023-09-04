@@ -2,7 +2,7 @@
     "domain": "jablotron_futura",
     "name": "Jablotron Futura",
     "config_flow": true,
-    "documentation": "https://www.home-assistant.io/integrations/jablotron_futura",
+    "documentation": "https://github.com/peterturza/home-assistant-jablotron-futura",
     "requirements": [],
     "ssdp": [],
     "zeroconf": [],
@@ -12,5 +12,5 @@
       "@peterturza"
     ],
     "iot_class": "cloud_polling",
-    "version": "0.0.1"
+    "version": "0.1.0"
   }

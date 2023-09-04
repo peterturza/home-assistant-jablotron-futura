@@ -7,17 +7,11 @@ from typing import Any
 
 from .futura import FuturaEntity
 from homeassistant.components.sensor import (
-    STATE_CLASS_MEASUREMENT,
     SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
 )
-from homeassistant.const import (
-    DEVICE_CLASS_CO2,
-    DEVICE_CLASS_HUMIDITY,
-    DEVICE_CLASS_POWER,
-    DEVICE_CLASS_TEMPERATURE,
-)
+
 from homeassistant.helpers.typing import StateType
 
 from .const import DOMAIN
@@ -33,17 +27,17 @@ async def async_setup_entry(hass, entry, async_add_entities):
             FuturaSummarySensorEntity(idx, device_class, coordinator)
             for idx, device_class in [
                 ("filter_health", None),
-                ("device_consumption", DEVICE_CLASS_POWER),
-                ("heating_recovered_current", DEVICE_CLASS_POWER),
+                ("device_consumption", SensorDeviceClass.POWER),
+                ("heating_recovered_current", SensorDeviceClass.POWER),
             ]
         ]
         + [
             FuturaPeripherySensorEnity(idx, device_class, coordinator)
             for idx, device_class in [
-                ("fut_co2_ppm_max", DEVICE_CLASS_CO2),
-                ("fut_humi_indoor", DEVICE_CLASS_HUMIDITY),
-                ("fut_temp_indoor", DEVICE_CLASS_TEMPERATURE),
-                ("fut_temp_outdoor", DEVICE_CLASS_TEMPERATURE),
+                ("fut_co2_ppm_max", SensorDeviceClass.CO2),
+                ("fut_humi_indoor", SensorDeviceClass.HUMIDITY),
+                ("fut_temp_indoor", SensorDeviceClass.TEMPERATURE),
+                ("fut_temp_outdoor", SensorDeviceClass.TEMPERATURE),
             ]
         ]
     )
@@ -69,7 +63,7 @@ class FuturaSummarySensorEntity(FuturaEntity, SensorEntity):
 
     @property
     def state_class(self) -> SensorStateClass | str | None:
-        return STATE_CLASS_MEASUREMENT
+        return SensorStateClass.MEASUREMENT
 
     @property
     def device_class(self) -> SensorDeviceClass | str | None:
@@ -109,7 +103,7 @@ class FuturaPeripherySensorEnity(FuturaEntity, SensorEntity):
 
     @property
     def state_class(self) -> SensorStateClass | str | None:
-        return STATE_CLASS_MEASUREMENT
+        return SensorStateClass.MEASUREMENT
 
     @property
     def device_class(self) -> SensorDeviceClass | str | None:
