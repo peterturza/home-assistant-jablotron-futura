@@ -1,3 +1,3 @@
 # Jablotron Futura
 
-Home Assistant custom component for JABLOTRON Futura.
+Home Assistant custom component for JABLOTRON Futura recuperation.
