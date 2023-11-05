@@ -1,16 +1,12 @@
 {
-    "domain": "jablotron_futura",
+    "domain": "jablotron_cloud",
     "name": "Jablotron Futura",
+    "version": "0.1.1",
     "config_flow": true,
     "documentation": "https://github.com/peterturza/home-assistant-jablotron-futura",
-    "requirements": [],
-    "ssdp": [],
-    "zeroconf": [],
-    "homekit": {},
+    "issue_tracker": "https://github.com/peterturza/home-assistant-jablotron-futura/issues",
     "dependencies": [],
-    "codeowners": [
-      "@peterturza"
-    ],
-    "iot_class": "cloud_polling",
-    "version": "0.1.0"
-  }
+    "codeowners": ["@peterturza"],
+    "requirements": [],
+    "iot_class": "cloud_polling"
+}
