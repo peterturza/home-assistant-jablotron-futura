@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Version 0.2.1
+
+- fix config entries initialization
+
 ## Version 0.2.0
 
 - added to HACS

@@ -1,13 +1,14 @@
 """Switch definitions for Jablotron Futura integration."""
+
 from __future__ import annotations
 
+from enum import StrEnum
 import logging
 
-from .futura import FuturaEntity
-from homeassistant.backports.enum import StrEnum
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
 
 from .const import DOMAIN
+from .futura import FuturaEntity
 
 _LOGGER = logging.getLogger(__name__)
 
