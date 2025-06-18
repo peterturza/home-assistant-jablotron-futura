@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Version 0.2.2
+
+- fix version string in manifest.json
+
 ## Version 0.2.1
 
 - fix config entries initialization
