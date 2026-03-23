@@ -8,9 +8,11 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import CONF_PASSWORD, CONF_USERNAME, DOMAIN
+from .errors import ApiAuthError
 from .futura import Futura
 
 type JablotronFuturaConfigEntry = ConfigEntry[FuturaCoordinator]
@@ -52,7 +54,12 @@ class FuturaCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_method=futura.sync,
             update_interval=timedelta(minutes=5),
         )
         self.futura = futura
+
+    async def _async_update_data(self):
+        try:
+            return await self.futura.sync()
+        except ApiAuthError as err:
+            raise ConfigEntryAuthFailed(err) from err

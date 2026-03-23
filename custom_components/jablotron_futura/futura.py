@@ -16,7 +16,6 @@ from .const import (
 )
 from .errors import ApiAuthError
 from homeassistant import core
-from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import aiohttp_client
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity, UpdateFailed
@@ -66,7 +65,7 @@ class Futura:
                 headers=JABLOTRON_API_DEFAULT_HEADERS,
             ) as result:
                 if result.status in (401, 403):
-                    raise ConfigEntryAuthFailed("Invalid Jablotron credentials")
+                    raise ApiAuthError("Invalid Jablotron credentials")
                 if result.status != 200:
                     raise UpdateFailed(
                         f"Jablotron API authorization failed with status {result.status}"
@@ -212,13 +211,14 @@ class FuturaControlEntity(FuturaEntity):
         self._idx = idx
         self._device_class = device_class
 
-    def data(self) -> dict[str, Any]:
+    def data(self) -> dict[str, Any] | None:
         controls = self.coordinator.data["device"]["data"]["controls"]
-        return list(filter(lambda control: control["id"] == self._idx, controls))[0]
+        matched = [c for c in controls if c["id"] == self._idx]
+        return matched[0] if matched else None
 
     @property
     def available(self) -> bool:
-        return self.data is not None
+        return self.data() is not None
 
     @property
     def unique_id(self) -> str:
