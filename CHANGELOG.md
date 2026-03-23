@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## Version 0.3.0
+
+- Added comprehensive README documentation
+- Fixed crash caused by missing switch platform
+- Modernized code to follow current Home Assistant patterns
+- Improved API error handling with proper HA exception types
+- Used EntityDescription dataclasses for sensor and binary sensor entities
+- Switched to ConfigEntry.runtime_data for coordinator storage
+- Added proper type annotations throughout
+
 ## Version 0.2.2
 
 - fix version string in manifest.json
