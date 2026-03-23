@@ -3,17 +3,23 @@ from __future__ import annotations
 
 import logging
 
-from .futura import FuturaControlEntity
 from homeassistant.components.select import SelectEntity
-from homeassistant.components.number import NumberDeviceClass
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .__init__ import JablotronFuturaConfigEntry
+from .futura import FuturaControlEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(hass, entry, async_add_entities):
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: JablotronFuturaConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up Futura select entities."""
+    coordinator = entry.runtime_data
 
     async_add_entities(
         [
@@ -24,9 +30,11 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class FuturaControlFanPowerEntity(FuturaControlEntity, SelectEntity):
-    def __init__(self, coordinator):
+    """Fan power control entity."""
+
+    def __init__(self, coordinator) -> None:
         super().__init__(
-            "control_fan_power", NumberDeviceClass.POWER_FACTOR, coordinator
+            "control_fan_power", None, coordinator
         )
 
     @property
@@ -64,8 +72,10 @@ class FuturaControlFanPowerEntity(FuturaControlEntity, SelectEntity):
 
 
 class FuturaControlHumidityEntity(FuturaControlEntity, SelectEntity):
-    def __init__(self, coordinator):
-        super().__init__("control_humidity", NumberDeviceClass.HUMIDITY, coordinator)
+    """Humidity control entity."""
+
+    def __init__(self, coordinator) -> None:
+        super().__init__("control_humidity", None, coordinator)
 
     @property
     def options(self) -> list[str]:
@@ -75,20 +85,18 @@ class FuturaControlHumidityEntity(FuturaControlEntity, SelectEntity):
     @property
     def current_option(self) -> str | None:
         data = self.data()
-        return list(
-            filter(
-                lambda option: option["id"] == data["extended_properties"]["value"],
-                data["extended_properties"]["options"],
-            )
-        )[0]["title"]
+        return [
+            option
+            for option in data["extended_properties"]["options"]
+            if option["id"] == data["extended_properties"]["value"]
+        ][0]["title"]
 
     async def async_select_option(self, option: str) -> None:
         data = self.data()
-        value = list(
-            filter(
-                lambda opt: opt["title"] == option,
-                data["extended_properties"]["options"],
-            )
-        )[0]["id"]
+        value = [
+            opt
+            for opt in data["extended_properties"]["options"]
+            if opt["title"] == option
+        ][0]["id"]
         await self._futura.set_control("humidity", value)
         await self.coordinator.async_refresh()
