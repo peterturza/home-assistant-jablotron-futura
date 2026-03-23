@@ -5,87 +5,130 @@ from datetime import date, datetime
 import logging
 from typing import Any
 
-from .futura import FuturaEntity
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
+    SensorEntityDescription,
     SensorStateClass,
 )
-
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
-from .const import DOMAIN
+from .__init__ import JablotronFuturaConfigEntry
+from .futura import FuturaEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(hass, entry, async_add_entities):
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+SUMMARY_SENSORS: tuple[SensorEntityDescription, ...] = (
+    SensorEntityDescription(
+        key="filter_health",
+        name="Filter Health",
+    ),
+    SensorEntityDescription(
+        key="device_consumption",
+        name="Device Consumption",
+        device_class=SensorDeviceClass.POWER,
+    ),
+    SensorEntityDescription(
+        key="heating_recovered_current",
+        name="Heating Recovered Current",
+        device_class=SensorDeviceClass.POWER,
+    ),
+)
+
+PERIPHERY_SENSORS: tuple[SensorEntityDescription, ...] = (
+    SensorEntityDescription(
+        key="fut_co2_ppm_max",
+        name="CO2 Max",
+        device_class=SensorDeviceClass.CO2,
+    ),
+    SensorEntityDescription(
+        key="fut_humi_indoor",
+        name="Indoor Humidity",
+        device_class=SensorDeviceClass.HUMIDITY,
+    ),
+    SensorEntityDescription(
+        key="fut_temp_indoor",
+        name="Indoor Temperature",
+        device_class=SensorDeviceClass.TEMPERATURE,
+    ),
+    SensorEntityDescription(
+        key="fut_temp_outdoor",
+        name="Outdoor Temperature",
+        device_class=SensorDeviceClass.TEMPERATURE,
+    ),
+)
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: JablotronFuturaConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up Futura sensors."""
+    coordinator = entry.runtime_data
 
     async_add_entities(
         [
-            FuturaSummarySensorEntity(idx, device_class, coordinator)
-            for idx, device_class in [
-                ("filter_health", None),
-                ("device_consumption", SensorDeviceClass.POWER),
-                ("heating_recovered_current", SensorDeviceClass.POWER),
-            ]
+            FuturaSummarySensorEntity(coordinator, description)
+            for description in SUMMARY_SENSORS
         ]
         + [
-            FuturaPeripherySensorEnity(idx, device_class, coordinator)
-            for idx, device_class in [
-                ("fut_co2_ppm_max", SensorDeviceClass.CO2),
-                ("fut_humi_indoor", SensorDeviceClass.HUMIDITY),
-                ("fut_temp_indoor", SensorDeviceClass.TEMPERATURE),
-                ("fut_temp_outdoor", SensorDeviceClass.TEMPERATURE),
-            ]
+            FuturaPeripherySensorEntity(coordinator, description)
+            for description in PERIPHERY_SENSORS
         ]
     )
 
 
 class FuturaSummarySensorEntity(FuturaEntity, SensorEntity):
-    def __init__(self, idx, device_class, coordinator):
+    """Futura summary sensor entity."""
+
+    entity_description: SensorEntityDescription
+
+    def __init__(self, coordinator, description: SensorEntityDescription) -> None:
         super().__init__(coordinator)
-        self._idx = idx
-        self._device_class = device_class
+        self.entity_description = description
 
     @property
     def unique_id(self) -> str:
-        return self._idx
+        return self.entity_description.key
 
     @property
     def available(self) -> bool:
-        return self._idx in self.coordinator.data["device"]["summary"]
+        return self.entity_description.key in self.coordinator.data["device"]["summary"]
 
     @property
     def native_value(self) -> StateType | date | datetime:
-        return self.coordinator.data["device"]["summary"][self._idx]
+        return self.coordinator.data["device"]["summary"][self.entity_description.key]
 
     @property
     def state_class(self) -> SensorStateClass | str | None:
         return SensorStateClass.MEASUREMENT
 
     @property
-    def device_class(self) -> SensorDeviceClass | str | None:
-        return self._device_class
-
-    @property
     def native_unit_of_measurement(self) -> str | None:
-        return self.coordinator.data["device"]["summary"]["{}_units".format(self._idx)]
+        return self.coordinator.data["device"]["summary"][
+            "{}_units".format(self.entity_description.key)
+        ]
 
 
-class FuturaPeripherySensorEnity(FuturaEntity, SensorEntity):
-    def __init__(self, idx, device_class, coordinator):
+class FuturaPeripherySensorEntity(FuturaEntity, SensorEntity):
+    """Futura periphery sensor entity."""
+
+    entity_description: SensorEntityDescription
+
+    def __init__(self, coordinator, description: SensorEntityDescription) -> None:
         super().__init__(coordinator)
-        self._idx = idx
-        self._device_class = device_class
+        self.entity_description = description
 
     @property
     def periphery(self) -> dict[str, Any] | None:
         peripheries = self.coordinator.data["device"]["peripheries"]
-        filtered = list(
-            filter(lambda periphery: periphery["id"] == self._idx, peripheries)
-        )
+        filtered = [
+            p for p in peripheries if p["id"] == self.entity_description.key
+        ]
         return filtered[0] if filtered else None
 
     @property
@@ -94,7 +137,7 @@ class FuturaPeripherySensorEnity(FuturaEntity, SensorEntity):
 
     @property
     def unique_id(self) -> str:
-        return self._idx
+        return self.entity_description.key
 
     @property
     def native_value(self) -> StateType | date | datetime:
@@ -104,10 +147,6 @@ class FuturaPeripherySensorEnity(FuturaEntity, SensorEntity):
     @property
     def state_class(self) -> SensorStateClass | str | None:
         return SensorStateClass.MEASUREMENT
-
-    @property
-    def device_class(self) -> SensorDeviceClass | str | None:
-        return self._device_class
 
     @property
     def native_unit_of_measurement(self) -> str | None:
