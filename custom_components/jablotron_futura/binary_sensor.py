@@ -3,49 +3,67 @@ from __future__ import annotations
 
 import logging
 
-from .futura import FuturaEntity
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
+    BinarySensorEntityDescription,
 )
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .__init__ import JablotronFuturaConfigEntry
+from .futura import FuturaEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(hass, entry, async_add_entities):
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+BINARY_SENSORS: tuple[BinarySensorEntityDescription, ...] = (
+    BinarySensorEntityDescription(
+        key="current_servo_drying",
+        name="Servo Drying",
+        device_class=BinarySensorDeviceClass.OPENING,
+    ),
+    BinarySensorEntityDescription(
+        key="current_servo_bypass",
+        name="Servo Bypass",
+        device_class=BinarySensorDeviceClass.OPENING,
+    ),
+)
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: JablotronFuturaConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up Futura binary sensors."""
+    coordinator = entry.runtime_data
 
     async_add_entities(
         [
-            FuturaSummaryBinarySensorEntity(idx, device_class, coordinator)
-            for idx, device_class in [
-                ("current_servo_drying", BinarySensorDeviceClass.OPENING),
-                ("current_servo_bypass", BinarySensorDeviceClass.OPENING),
-            ]
+            FuturaSummaryBinarySensorEntity(coordinator, description)
+            for description in BINARY_SENSORS
         ]
     )
 
 
 class FuturaSummaryBinarySensorEntity(FuturaEntity, BinarySensorEntity):
-    def __init__(self, idx, device_class, coordinator):
+    """Futura summary binary sensor entity."""
+
+    entity_description: BinarySensorEntityDescription
+
+    def __init__(self, coordinator, description: BinarySensorEntityDescription) -> None:
         super().__init__(coordinator)
-        self._idx = idx
-        self._device_class = device_class
+        self.entity_description = description
 
     @property
     def unique_id(self) -> str:
-        return self._idx
+        return self.entity_description.key
 
     @property
     def available(self) -> bool:
-        return self._idx in self.coordinator.data["device"]["summary"]
+        return self.entity_description.key in self.coordinator.data["device"]["summary"]
 
     @property
     def is_on(self) -> bool:
-        return self.coordinator.data["device"]["summary"][self._idx]
-
-    @property
-    def device_class(self) -> str | None:
-        return self._device_class
+        return self.coordinator.data["device"]["summary"][self.entity_description.key]
