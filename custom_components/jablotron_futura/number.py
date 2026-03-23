@@ -3,16 +3,23 @@ from __future__ import annotations
 
 import logging
 
-from .futura import FuturaControlEntity
 from homeassistant.components.number import NumberDeviceClass, NumberEntity
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .__init__ import JablotronFuturaConfigEntry
+from .futura import FuturaControlEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(hass, entry, async_add_entities):
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: JablotronFuturaConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up Futura number entities."""
+    coordinator = entry.runtime_data
 
     async_add_entities(
         [
@@ -22,7 +29,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class FuturaControlTemperatureEntity(FuturaControlEntity, NumberEntity):
-    def __init__(self, coordinator):
+    """Temperature control entity."""
+
+    def __init__(self, coordinator) -> None:
         super().__init__(
             "control_temperature", NumberDeviceClass.TEMPERATURE, coordinator
         )
