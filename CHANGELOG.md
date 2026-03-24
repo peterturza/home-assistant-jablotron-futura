@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## Version 0.3.1
+
+- Fix missing switches (bypass, cooling, heating, radon_protection)
+
+
 ## Version 0.3.0
 
 - Added comprehensive README documentation

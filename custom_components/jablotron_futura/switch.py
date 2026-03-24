@@ -2,19 +2,18 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
 import logging
+from enum import StrEnum
 
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
 
-from .const import DOMAIN
 from .futura import FuturaEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
 
     async_add_entities(
         [

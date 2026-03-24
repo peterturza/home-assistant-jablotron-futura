@@ -40,6 +40,11 @@ Home Assistant custom integration for **Jablotron Futura** heat recovery ventila
 | Fan Power | Select | Fan speed level with airflow display |
 | Humidity | Select | Humidity control mode |
 | Temperature | Number | Target temperature setpoint |
+| Bypass | Switch | Bypass servo opening |
+| Cooling | Switch | Enable cooling (if available) |
+| Heating | Switch | Enable heating |
+| Radon Protection | Switch | Enable radon protection |
+
 
 ## Requirements
 
