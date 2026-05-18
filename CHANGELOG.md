@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## Version 0.3.2
+
+- Security: enable TLS certificate verification on the Jablotron cloud API session (removed `verify_ssl=False`)
+
+
 ## Version 0.3.1
 
 - Fix missing switches (bypass, cooling, heating, radon_protection)

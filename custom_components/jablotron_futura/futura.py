@@ -49,9 +49,7 @@ class Futura:
         self._username: str = username
         self._password: str = password
         self._central_unit: FuturaCentralUnit | None = None
-        self._session = aiohttp_client.async_get_clientsession(
-            self._hass, verify_ssl=False
-        )
+        self._session = aiohttp_client.async_get_clientsession(self._hass)
 
     async def authorize(self) -> None:
         """Authorize user via API"""
