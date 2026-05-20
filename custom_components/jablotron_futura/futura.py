@@ -189,22 +189,17 @@ class Futura:
 
 
 class FuturaEntity(CoordinatorEntity):
+    _attr_has_entity_name = True
+
     def __init__(self, coordinator):
         super().__init__(coordinator)
         self._futura = coordinator.futura
         self._central_unit = self._futura.central_unit()
 
     @property
-    def name(self) -> str | None:
-        return "{}.{}".format(DOMAIN, self.unique_id)
-
-    @property
     def device_info(self) -> DeviceInfo:
         return DeviceInfo(
-            identifiers={
-                # Serial numbers are unique identifiers within a specific domain
-                (DOMAIN, self._central_unit.serial_no)
-            },
+            identifiers={(DOMAIN, self._central_unit.serial_no)},
             manufacturer=JABLOTRON,
             name=DOMAIN,
             model=self._central_unit.model,

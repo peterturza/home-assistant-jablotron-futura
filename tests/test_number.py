@@ -10,7 +10,7 @@ async def test_temperature_number_created(hass: HomeAssistant):
     """Test that temperature number entity is created with correct value."""
     await setup_integration(hass)
 
-    state = hass.states.get("number.jablotron_futura_sn123456789_control_temperature")
+    state = hass.states.get("number.jablotron_futura_temperature")
     assert state is not None
     assert state.state == "22.0"
 
@@ -19,7 +19,7 @@ async def test_temperature_number_attributes(hass: HomeAssistant):
     """Test that temperature number entity has correct attributes."""
     await setup_integration(hass)
 
-    state = hass.states.get("number.jablotron_futura_sn123456789_control_temperature")
+    state = hass.states.get("number.jablotron_futura_temperature")
     assert state is not None
     assert state.attributes.get("min") == 15.0
     assert state.attributes.get("max") == 30.0
