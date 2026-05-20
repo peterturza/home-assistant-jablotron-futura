@@ -114,6 +114,14 @@ MOCK_DEVICE_RESPONSE = {
                 },
             ]
         },
+        "settings": {
+            "extended_properties": {
+                "bypass": "enabled",
+                "cooling": "disabled",
+                "heating": "enabled",
+                "radon_protection": "disabled",
+            }
+        },
     }
 }
 
