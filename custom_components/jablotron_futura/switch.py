@@ -41,7 +41,7 @@ class FuturaSettingsSwitchEntity(FuturaEntity, SwitchEntity):
 
     @property
     def unique_id(self) -> str:
-        return self._idx
+        return f"{self._central_unit.serial_no}_{self._idx}"
 
     @property
     def value(self) -> str:

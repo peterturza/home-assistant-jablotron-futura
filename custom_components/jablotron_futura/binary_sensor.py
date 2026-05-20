@@ -58,7 +58,7 @@ class FuturaSummaryBinarySensorEntity(FuturaEntity, BinarySensorEntity):
 
     @property
     def unique_id(self) -> str:
-        return self.entity_description.key
+        return f"{self._central_unit.serial_no}_{self.entity_description.key}"
 
     @property
     def available(self) -> bool:

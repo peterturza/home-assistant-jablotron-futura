@@ -7,8 +7,9 @@ from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryError
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import CONF_PASSWORD, CONF_USERNAME, DOMAIN
@@ -36,6 +37,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: JablotronFuturaConfigEnt
     coordinator = FuturaCoordinator(hass, futura)
 
     await coordinator.async_config_entry_first_refresh()
+
+    serial_no = coordinator.futura.central_unit().serial_no
+
+    if not serial_no:
+        raise ConfigEntryError(
+            "Jablotron device returned no serial number; cannot scope entity unique IDs"
+        )
+
+    @callback
+    def _migrate_unique_id(registry_entry: er.RegistryEntry) -> dict | None:
+        prefix = f"{serial_no}_"
+        if registry_entry.unique_id.startswith(prefix):
+            return None
+        return {"new_unique_id": f"{prefix}{registry_entry.unique_id}"}
+
+    await er.async_migrate_entries(hass, entry.entry_id, _migrate_unique_id)
 
     entry.runtime_data = coordinator
 
