@@ -36,7 +36,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
         raise ServiceNotFoundError
 
     # Return info that you want to store in the config entry.
-    return {"title": central_unit.model}
+    return {"title": central_unit.model, "serial_no": central_unit.serial_no}
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -67,6 +67,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.exception(ex)
             errors["base"] = "unknown"
         else:
+            await self.async_set_unique_id(info["serial_no"])
+            self._abort_if_unique_id_configured()
             return self.async_create_entry(title=info["title"], data=user_input)
 
         return self.async_show_form(

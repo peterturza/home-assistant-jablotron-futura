@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## Version 0.4.0
+
+- Auth: cache session token, only re-authorize on 401 (no more cleartext credentials every 5 minutes)
+- Config flow: prevent adding the same Jablotron account twice (`async_set_unique_id` on device serial)
+- Entities: scope `unique_id` by device serial; existing entity registry rows auto-migrate
+- Entities: use `_attr_has_entity_name = True` for friendly display names
+
 ## Version 0.3.2
 
 - Security: enable TLS certificate verification on the Jablotron cloud API session (removed `verify_ssl=False`)
