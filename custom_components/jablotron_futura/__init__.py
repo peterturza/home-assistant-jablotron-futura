@@ -47,9 +47,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: JablotronFuturaConfigEnt
 
     # Migrate the config-entry unique id from a unit serial (legacy) to the
     # account login, so all units on one account share a single entry.
-    username = entry.data[CONF_USERNAME]
-    if entry.unique_id != username:
-        hass.config_entries.async_update_entry(entry, unique_id=username)
+    account_uid = entry.data[CONF_USERNAME].lower()
+    if entry.unique_id != account_uid:
+        hass.config_entries.async_update_entry(entry, unique_id=account_uid)
 
     # Legacy entity unique_id prefixing only applies to single-unit accounts:
     # multi-unit accounts have unambiguous serials already, and any account that
