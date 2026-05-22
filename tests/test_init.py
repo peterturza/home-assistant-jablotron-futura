@@ -245,8 +245,10 @@ async def test_remove_config_entry_device(hass: HomeAssistant):
     from .conftest import MOCK_SERIAL, setup_integration_multi
 
     entry = await setup_integration_multi(hass)
+    registry = dr.async_get(hass)
 
-    current = dr.DeviceEntry(identifiers={(DOMAIN, MOCK_SERIAL)})
+    current = registry.async_get_device(identifiers={(DOMAIN, MOCK_SERIAL)})
+    assert current is not None
     stale = dr.DeviceEntry(identifiers={(DOMAIN, "SN000000000")})
 
     assert await async_remove_config_entry_device(hass, entry, current) is False

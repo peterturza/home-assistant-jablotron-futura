@@ -67,4 +67,6 @@ async def test_sensors_created_for_both_units(hass: HomeAssistant):
     }
     for serial in (MOCK_SERIAL, MOCK_SERIAL_2):
         entity_id = by_uid[f"{serial}_filter_health"]
-        assert hass.states.get(entity_id).state == "85"
+        state = hass.states.get(entity_id)
+        assert state is not None, f"no state for {entity_id} ({serial})"
+        assert state.state == "85"
