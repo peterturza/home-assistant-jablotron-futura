@@ -32,10 +32,10 @@ async def async_setup_entry(
 class FuturaControlFanPowerEntity(FuturaControlEntity, SelectEntity):
     """Fan power control entity."""
 
+    _attr_name = "Fan Power"
+
     def __init__(self, coordinator) -> None:
-        super().__init__(
-            "control_fan_power", None, coordinator
-        )
+        super().__init__("control_fan_power", None, coordinator)
 
     @property
     def options(self) -> list[str]:
@@ -73,6 +73,8 @@ class FuturaControlFanPowerEntity(FuturaControlEntity, SelectEntity):
 
 class FuturaControlHumidityEntity(FuturaControlEntity, SelectEntity):
     """Humidity control entity."""
+
+    _attr_name = "Humidity"
 
     def __init__(self, coordinator) -> None:
         super().__init__("control_humidity", None, coordinator)

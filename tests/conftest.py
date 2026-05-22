@@ -22,6 +22,7 @@ def auto_enable_custom_integrations(enable_custom_integrations):
 
 MOCK_USERNAME = "test@example.com"
 MOCK_PASSWORD = "testpassword"
+MOCK_SERIAL = "SN123456789"  # matches MOCK_DEVICE_RESPONSE.device.details.serial_no
 
 MOCK_CONFIG = {
     CONF_USERNAME: MOCK_USERNAME,
@@ -113,6 +114,14 @@ MOCK_DEVICE_RESPONSE = {
                     },
                 },
             ]
+        },
+        "settings": {
+            "extended_properties": {
+                "bypass": "enabled",
+                "cooling": "disabled",
+                "heating": "enabled",
+                "radon_protection": "disabled",
+            }
         },
     }
 }

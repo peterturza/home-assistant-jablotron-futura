@@ -12,19 +12,19 @@ from .futura import FuturaEntity
 _LOGGER = logging.getLogger(__name__)
 
 
+SWITCHES = (
+    ("bypass", "Bypass", SwitchDeviceClass.SWITCH),
+    ("cooling", "Cooling", SwitchDeviceClass.SWITCH),
+    ("heating", "Heating", SwitchDeviceClass.SWITCH),
+    ("radon_protection", "Radon Protection", SwitchDeviceClass.SWITCH),
+)
+
+
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = entry.runtime_data
-
     async_add_entities(
-        [
-            FuturaSettingsSwitchEntity(idx, device_class, coordinator)
-            for idx, device_class in [
-                ("bypass", SwitchDeviceClass.SWITCH),
-                ("cooling", SwitchDeviceClass.SWITCH),
-                ("heating", SwitchDeviceClass.SWITCH),
-                ("radon_protection", SwitchDeviceClass.SWITCH),
-            ]
-        ]
+        FuturaSettingsSwitchEntity(idx, name, device_class, coordinator)
+        for idx, name, device_class in SWITCHES
     )
 
 
@@ -34,14 +34,15 @@ class FuturaEnabledEnum(StrEnum):
 
 
 class FuturaSettingsSwitchEntity(FuturaEntity, SwitchEntity):
-    def __init__(self, idx, device_class, coordinator):
+    def __init__(self, idx, name, device_class, coordinator):
         super().__init__(coordinator)
         self._idx = idx
+        self._attr_name = name
         self._device_class = device_class
 
     @property
     def unique_id(self) -> str:
-        return self._idx
+        return f"{self._central_unit.serial_no}_{self._idx}"
 
     @property
     def value(self) -> str:

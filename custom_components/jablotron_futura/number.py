@@ -31,10 +31,10 @@ async def async_setup_entry(
 class FuturaControlTemperatureEntity(FuturaControlEntity, NumberEntity):
     """Temperature control entity."""
 
+    _attr_name = "Temperature"
+
     def __init__(self, coordinator) -> None:
-        super().__init__(
-            "control_temperature", NumberDeviceClass.TEMPERATURE, coordinator
-        )
+        super().__init__("control_temperature", NumberDeviceClass.TEMPERATURE, coordinator)
 
     @property
     def native_value(self) -> float | None:
