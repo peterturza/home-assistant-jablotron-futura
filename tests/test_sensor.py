@@ -51,3 +51,20 @@ async def test_summary_sensor_has_friendly_name(hass: HomeAssistant):
     state = hass.states.get("sensor.jablotron_futura_filter_health")
     assert state is not None
     assert state.attributes["friendly_name"] == "jablotron_futura Filter Health"
+
+
+async def test_sensors_created_for_both_units(hass: HomeAssistant):
+    """A two-unit account exposes a filter_health sensor for each unit."""
+    from homeassistant.helpers import entity_registry as er
+    from .conftest import MOCK_SERIAL, MOCK_SERIAL_2, setup_integration_multi
+
+    entry = await setup_integration_multi(hass)
+    registry = er.async_get(hass)
+
+    by_uid = {
+        e.unique_id: e.entity_id
+        for e in er.async_entries_for_config_entry(registry, entry.entry_id)
+    }
+    for serial in (MOCK_SERIAL, MOCK_SERIAL_2):
+        entity_id = by_uid[f"{serial}_filter_health"]
+        assert hass.states.get(entity_id).state == "85"
