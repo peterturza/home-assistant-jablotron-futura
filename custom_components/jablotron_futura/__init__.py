@@ -9,6 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryError
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
@@ -38,27 +39,49 @@ async def async_setup_entry(hass: HomeAssistant, entry: JablotronFuturaConfigEnt
 
     await coordinator.async_config_entry_first_refresh()
 
-    serial_no = coordinator.futura.central_unit().serial_no
-
-    if not serial_no:
+    units = coordinator.futura.units()
+    if not units or any(not serial for serial in units):
         raise ConfigEntryError(
             "Jablotron device returned no serial number; cannot scope entity unique IDs"
         )
 
-    @callback
-    def _migrate_unique_id(registry_entry: er.RegistryEntry) -> dict | None:
-        prefix = f"{serial_no}_"
-        if registry_entry.unique_id.startswith(prefix):
-            return None
-        return {"new_unique_id": f"{prefix}{registry_entry.unique_id}"}
+    # Migrate the config-entry unique id from a unit serial (legacy) to the
+    # account login, so all units on one account share a single entry.
+    username = entry.data[CONF_USERNAME]
+    if entry.unique_id != username:
+        hass.config_entries.async_update_entry(entry, unique_id=username)
 
-    await er.async_migrate_entries(hass, entry.entry_id, _migrate_unique_id)
+    # Legacy entity unique_id prefixing only applies to single-unit accounts:
+    # multi-unit accounts have unambiguous serials already, and any account that
+    # passed through 0.4.0 is already prefixed (this is then a no-op).
+    if len(units) == 1:
+        serial_no = next(iter(units))
+
+        @callback
+        def _migrate_unique_id(registry_entry: er.RegistryEntry) -> dict | None:
+            prefix = f"{serial_no}_"
+            if registry_entry.unique_id.startswith(prefix):
+                return None
+            return {"new_unique_id": f"{prefix}{registry_entry.unique_id}"}
+
+        await er.async_migrate_entries(hass, entry.entry_id, _migrate_unique_id)
 
     entry.runtime_data = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant,
+    entry: JablotronFuturaConfigEntry,
+    device_entry: dr.DeviceEntry,
+) -> bool:
+    """Allow deleting a device whose unit is no longer on the account."""
+    coordinator = entry.runtime_data
+    known = {(DOMAIN, serial) for serial in coordinator.futura.units()}
+    return not (device_entry.identifiers & known)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: JablotronFuturaConfigEntry) -> bool:
