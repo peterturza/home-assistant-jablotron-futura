@@ -156,9 +156,11 @@ class Futura:
         self._units = units
         return result
 
-    async def set_control(self, serial: str, control, value) -> None:
+    async def set_control(self, serial: str, control: str, value: Any) -> None:
         """Sets control value via API for the unit with the given serial."""
-        unit = self._units[serial]
+        unit = self._units.get(serial)
+        if unit is None:
+            raise UpdateFailed(f"Unknown Futura unit serial: {serial}")
         await self._post(
             "{}/setDevice.json".format(JABLOTRON_API),
             json={
@@ -179,10 +181,12 @@ class Futura:
         )
 
     async def set_setting_extended_property(
-        self, serial: str, prop_name: str, prop_value
+        self, serial: str, prop_name: str, prop_value: Any
     ) -> None:
         """Sets extended property value via API for the unit with the given serial."""
-        unit = self._units[serial]
+        unit = self._units.get(serial)
+        if unit is None:
+            raise UpdateFailed(f"Unknown Futura unit serial: {serial}")
         await self._post(
             "{}/setDevice.json".format(JABLOTRON_API),
             json={
