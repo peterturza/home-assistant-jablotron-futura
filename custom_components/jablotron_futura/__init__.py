@@ -42,7 +42,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: JablotronFuturaConfigEnt
     units = coordinator.futura.units()
     if not units or any(not serial for serial in units):
         raise ConfigEntryError(
-            "Jablotron device returned no serial number; cannot scope entity unique IDs"
+            "One or more Jablotron units returned no serial number; cannot scope entity unique IDs"
         )
 
     # Migrate the config-entry unique id from a unit serial (legacy) to the
