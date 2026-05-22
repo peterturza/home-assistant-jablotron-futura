@@ -31,12 +31,12 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     """
     futura = Futura(hass, data[CONF_USERNAME], data[CONF_PASSWORD])
     await futura.sync()
-    central_unit = futura.central_unit()
-    if not central_unit:
+    if not futura.units():
         raise ServiceNotFoundError
 
-    # Return info that you want to store in the config entry.
-    return {"title": central_unit.model, "serial_no": central_unit.serial_no}
+    # The account login uniquely identifies the entry; a single account may
+    # carry several Futura units, each modelled as its own device.
+    return {"title": data[CONF_USERNAME]}
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -67,7 +67,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.exception(ex)
             errors["base"] = "unknown"
         else:
-            await self.async_set_unique_id(info["serial_no"])
+            await self.async_set_unique_id(user_input[CONF_USERNAME])
             self._abort_if_unique_id_configured()
             return self.async_create_entry(title=info["title"], data=user_input)
 
