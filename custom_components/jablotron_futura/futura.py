@@ -48,7 +48,7 @@ class Futura:
         self._hass: core.HomeAssistant = hass
         self._username: str = username
         self._password: str = password
-        self._central_unit: FuturaCentralUnit | None = None
+        self._units: dict[str, FuturaCentralUnit] = {}
         self._authenticated: bool = False
         self._session = aiohttp_client.async_get_clientsession(self._hass)
 
@@ -103,8 +103,11 @@ class Futura:
         except (TimeoutError, aiohttp.ClientError) as err:
             raise UpdateFailed(f"Error communicating with Jablotron API: {err}") from err
 
-    async def sync(self):
-        """Get data from API"""
+    async def sync(self) -> dict[str, Any]:
+        """Fetch every Futura unit on the account.
+
+        Returns a dict keyed by serial number: ``{serial_no: device_json}``.
+        """
         service_json = await self._post(
             "{}/serviceListGet.json".format(JABLOTRON_API),
             json={"visibility": "DEFAULT", "list-type": "EXTENDED", "checksum": ""},
@@ -121,34 +124,41 @@ class Futura:
         ]
         if not futura_services:
             raise UpdateFailed("No Futura service found")
-        service = futura_services[0]
 
-        device_json = await self._post(
-            "{}/getDevice.json".format(JABLOTRON_API),
-            json={
-                "id": str(service["service-id"]),
-                "status": "true",
-                "type": JABLOTRON_FUTURA_NAMESPACE,
-                "system": "IOS",
-                "checksum": "",
-            },
-            headers=JABLOTRON_API_DEFAULT_HEADERS
-            | {JABLOTRON_FUTURA_NAMESPACE_KEY: JABLOTRON_FUTURA_NAMESPACE},
-        )
-        device = device_json["device"]
-        _LOGGER.debug(device)
-        self._central_unit = FuturaCentralUnit(
-            service_id=device["id"],
-            model=device["type"],
-            hw_version=device["details"]["hw_revision"],
-            fw_version=device["details"]["fw_version"],
-            serial_no=device["details"]["serial_no"],
-            room_id=device["rooms"][0]["id"],
-        )
-        return device_json
+        units: dict[str, FuturaCentralUnit] = {}
+        result: dict[str, Any] = {}
+        for service in futura_services:
+            device_json = await self._post(
+                "{}/getDevice.json".format(JABLOTRON_API),
+                json={
+                    "id": str(service["service-id"]),
+                    "status": "true",
+                    "type": JABLOTRON_FUTURA_NAMESPACE,
+                    "system": "IOS",
+                    "checksum": "",
+                },
+                headers=JABLOTRON_API_DEFAULT_HEADERS
+                | {JABLOTRON_FUTURA_NAMESPACE_KEY: JABLOTRON_FUTURA_NAMESPACE},
+            )
+            device = device_json["device"]
+            _LOGGER.debug(device)
+            serial_no = device["details"]["serial_no"]
+            units[serial_no] = FuturaCentralUnit(
+                service_id=device["id"],
+                model=device["type"],
+                hw_version=device["details"]["hw_revision"],
+                fw_version=device["details"]["fw_version"],
+                serial_no=serial_no,
+                room_id=device["rooms"][0]["id"],
+            )
+            result[serial_no] = device_json
 
-    async def set_control(self, control, value) -> None:
-        """Sets control value via API"""
+        self._units = units
+        return result
+
+    async def set_control(self, serial: str, control, value) -> None:
+        """Sets control value via API for the unit with the given serial."""
+        unit = self._units[serial]
         await self._post(
             "{}/setDevice.json".format(JABLOTRON_API),
             json={
@@ -157,10 +167,10 @@ class Futura:
                     "control": [
                         {
                             "manual": {control: value},
-                            "room_id": self._central_unit.room_id,
+                            "room_id": unit.room_id,
                         }
                     ],
-                    "id": self._central_unit.service_id,
+                    "id": unit.service_id,
                 },
                 "system": "IOS",
             },
@@ -168,15 +178,18 @@ class Futura:
             | {JABLOTRON_FUTURA_NAMESPACE_KEY: JABLOTRON_FUTURA_NAMESPACE},
         )
 
-    async def set_setting_extended_property(self, prop_name: str, prop_value) -> None:
-        """Sets extended property value via API"""
+    async def set_setting_extended_property(
+        self, serial: str, prop_name: str, prop_value
+    ) -> None:
+        """Sets extended property value via API for the unit with the given serial."""
+        unit = self._units[serial]
         await self._post(
             "{}/setDevice.json".format(JABLOTRON_API),
             json={
                 "device": {
                     "type": JABLOTRON_FUTURA_NAMESPACE,
                     "settings": {"extended_properties": {prop_name: prop_value}},
-                    "id": self._central_unit.service_id,
+                    "id": unit.service_id,
                 },
                 "system": "IOS",
             },
@@ -184,39 +197,48 @@ class Futura:
             | {JABLOTRON_FUTURA_NAMESPACE_KEY: JABLOTRON_FUTURA_NAMESPACE},
         )
 
-    def central_unit(self) -> FuturaCentralUnit:
-        return self._central_unit
+    def units(self) -> dict[str, FuturaCentralUnit]:
+        return self._units
+
+    def primary_unit(self) -> FuturaCentralUnit | None:
+        """First unit by service order; used for legacy entity-id migration."""
+        return next(iter(self._units.values()), None)
 
 
 class FuturaEntity(CoordinatorEntity):
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator):
+    def __init__(self, coordinator, central_unit):
         super().__init__(coordinator)
         self._futura = coordinator.futura
-        self._central_unit = self._futura.central_unit()
+        self._central_unit = central_unit
+        self._serial = central_unit.serial_no
+
+    @property
+    def _device(self) -> dict[str, Any]:
+        """This unit's device payload from the coordinator data."""
+        return self.coordinator.data[self._serial]["device"]
 
     @property
     def device_info(self) -> DeviceInfo:
         return DeviceInfo(
-            identifiers={(DOMAIN, self._central_unit.serial_no)},
+            identifiers={(DOMAIN, self._serial)},
             manufacturer=JABLOTRON,
             name=DOMAIN,
             model=self._central_unit.model,
             sw_version=self._central_unit.fw_version,
             hw_version=self._central_unit.hw_version,
-            via_device=(DOMAIN, self._central_unit.serial_no),
         )
 
 
 class FuturaControlEntity(FuturaEntity):
-    def __init__(self, idx, device_class, coordinator):
-        super().__init__(coordinator)
+    def __init__(self, idx, device_class, coordinator, central_unit):
+        super().__init__(coordinator, central_unit)
         self._idx = idx
         self._device_class = device_class
 
     def data(self) -> dict[str, Any] | None:
-        controls = self.coordinator.data["device"]["data"]["controls"]
+        controls = self._device["data"]["controls"]
         matched = [c for c in controls if c["id"] == self._idx]
         return matched[0] if matched else None
 
@@ -226,7 +248,7 @@ class FuturaControlEntity(FuturaEntity):
 
     @property
     def unique_id(self) -> str:
-        return f"{self._central_unit.serial_no}_{self._idx}"
+        return f"{self._serial}_{self._idx}"
 
     @property
     def device_class(self) -> str | None:
