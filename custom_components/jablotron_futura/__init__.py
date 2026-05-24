@@ -51,20 +51,35 @@ async def async_setup_entry(hass: HomeAssistant, entry: JablotronFuturaConfigEnt
     if entry.unique_id != account_uid:
         hass.config_entries.async_update_entry(entry, unique_id=account_uid)
 
-    # Legacy entity unique_id prefixing only applies to single-unit accounts:
-    # multi-unit accounts have unambiguous serials already, and any account that
-    # passed through 0.4.0 is already prefixed (this is then a no-op).
-    if len(units) == 1:
-        serial_no = next(iter(units))
+    # Migrate legacy un-prefixed entity unique ids to the primary unit's serial.
+    # Pre-0.4.0 installs only ever set up the primary (first) unit, so its legacy
+    # rows belong to it; migrating them before platform setup lets the new
+    # entities reuse the rows and preserve history. Rows already scoped to any
+    # known unit serial are left alone, and any rename whose target already
+    # exists is skipped — a prior multi-unit boot can leave both the legacy and
+    # the serial-prefixed form in the registry, and renaming into the existing
+    # id would raise and fail setup (#10).
+    primary = coordinator.futura.primary_unit()
+    registry = er.async_get(hass)
+    existing_unique_ids = {
+        registry_entry.unique_id
+        for registry_entry in er.async_entries_for_config_entry(
+            registry, entry.entry_id
+        )
+    }
 
-        @callback
-        def _migrate_unique_id(registry_entry: er.RegistryEntry) -> dict | None:
-            prefix = f"{serial_no}_"
-            if registry_entry.unique_id.startswith(prefix):
-                return None
-            return {"new_unique_id": f"{prefix}{registry_entry.unique_id}"}
+    @callback
+    def _migrate_unique_id(registry_entry: er.RegistryEntry) -> dict | None:
+        if any(
+            registry_entry.unique_id.startswith(f"{serial}_") for serial in units
+        ):
+            return None
+        new_unique_id = f"{primary.serial_no}_{registry_entry.unique_id}"
+        if new_unique_id in existing_unique_ids:
+            return None
+        return {"new_unique_id": new_unique_id}
 
-        await er.async_migrate_entries(hass, entry.entry_id, _migrate_unique_id)
+    await er.async_migrate_entries(hass, entry.entry_id, _migrate_unique_id)
 
     entry.runtime_data = coordinator
 
