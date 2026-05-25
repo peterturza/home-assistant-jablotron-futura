@@ -38,9 +38,9 @@ async def test_config_flow_success(hass: HomeAssistant):
             MOCK_CONFIG,
         )
         assert result["type"] == FlowResultType.CREATE_ENTRY
-        assert result["title"] == "Futura 2"
+        assert result["title"] == "test@example.com"
         assert result["data"] == MOCK_CONFIG
-        assert result["result"].unique_id == "SN123456789"
+        assert result["result"].unique_id == "test@example.com"
 
 
 async def test_config_flow_invalid_auth(hass: HomeAssistant):
@@ -83,7 +83,7 @@ async def test_config_flow_api_error(hass: HomeAssistant):
         assert result["errors"] == {"base": "unknown"}
 
 
-async def test_config_flow_aborts_on_duplicate_serial(hass: HomeAssistant):
+async def test_config_flow_aborts_on_duplicate_account(hass: HomeAssistant):
     """Adding the same Jablotron account twice must abort with 'already_configured'."""
     mock_session = create_mock_session()
 
@@ -101,7 +101,7 @@ async def test_config_flow_aborts_on_duplicate_serial(hass: HomeAssistant):
         # The abort fires on async_configure (when async_set_unique_id runs), not on
         # async_init. Both flows share the same hass, so the first entry persists.
 
-        # Second attempt with the same credentials -> same serial -> abort.
+        # Second attempt with the same credentials -> same account -> abort.
         second = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": config_entries.SOURCE_USER}
         )

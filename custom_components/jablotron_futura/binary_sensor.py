@@ -39,12 +39,13 @@ async def async_setup_entry(
     """Set up Futura binary sensors."""
     coordinator = entry.runtime_data
 
-    async_add_entities(
-        [
-            FuturaSummaryBinarySensorEntity(coordinator, description)
+    entities = []
+    for unit in coordinator.futura.units().values():
+        entities += [
+            FuturaSummaryBinarySensorEntity(coordinator, unit, description)
             for description in BINARY_SENSORS
         ]
-    )
+    async_add_entities(entities)
 
 
 class FuturaSummaryBinarySensorEntity(FuturaEntity, BinarySensorEntity):
@@ -52,18 +53,18 @@ class FuturaSummaryBinarySensorEntity(FuturaEntity, BinarySensorEntity):
 
     entity_description: BinarySensorEntityDescription
 
-    def __init__(self, coordinator, description: BinarySensorEntityDescription) -> None:
-        super().__init__(coordinator)
+    def __init__(self, coordinator, central_unit, description: BinarySensorEntityDescription) -> None:
+        super().__init__(coordinator, central_unit)
         self.entity_description = description
 
     @property
     def unique_id(self) -> str:
-        return f"{self._central_unit.serial_no}_{self.entity_description.key}"
+        return f"{self._serial}_{self.entity_description.key}"
 
     @property
     def available(self) -> bool:
-        return self.entity_description.key in self.coordinator.data["device"]["summary"]
+        return self.entity_description.key in self._device["summary"]
 
     @property
     def is_on(self) -> bool:
-        return self.coordinator.data["device"]["summary"][self.entity_description.key]
+        return self._device["summary"][self.entity_description.key]

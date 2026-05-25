@@ -1,6 +1,7 @@
 """Fixtures for Jablotron Futura tests."""
 from __future__ import annotations
 
+import copy
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -126,6 +127,41 @@ MOCK_DEVICE_RESPONSE = {
     }
 }
 
+MOCK_SERIAL_2 = "SN987654321"
+
+MOCK_SERVICE_LIST_MULTI = {
+    "data": {
+        "services": [
+            {
+                "service-id": 12345,
+                "visible": True,
+                "status": "ENABLED",
+                "service-type": "FUTURA2",
+            },
+            {
+                "service-id": 67890,
+                "visible": True,
+                "status": "ENABLED",
+                "service-type": "FUTURA2",
+            },
+        ]
+    }
+}
+
+
+def make_device_response(device_id: str, serial_no: str) -> dict:
+    """Clone MOCK_DEVICE_RESPONSE with a distinct id + serial number."""
+    resp = copy.deepcopy(MOCK_DEVICE_RESPONSE)
+    resp["device"]["id"] = device_id
+    resp["device"]["details"]["serial_no"] = serial_no
+    return resp
+
+
+MOCK_DEVICE_RESPONSES_MULTI = {
+    "12345": make_device_response("12345", MOCK_SERIAL),
+    "67890": make_device_response("67890", MOCK_SERIAL_2),
+}
+
 
 class MockResponse:
     """Mock aiohttp response."""
@@ -148,9 +184,15 @@ def create_mock_session(
     auth_status=200,
     service_list_response=None,
     device_response=None,
+    device_responses=None,
     set_device_status=200,
 ):
-    """Create a mock aiohttp session that simulates the Jablotron API."""
+    """Create a mock aiohttp session that simulates the Jablotron API.
+
+    Pass ``device_responses`` (dict keyed by the string ``id`` sent in the
+    getDevice body) to simulate multiple units; otherwise ``device_response``
+    is returned for every getDevice call.
+    """
     if service_list_response is None:
         service_list_response = MOCK_SERVICE_LIST_RESPONSE
     if device_response is None:
@@ -162,6 +204,9 @@ def create_mock_session(
         elif "serviceListGet" in url:
             return MockResponse(service_list_response)
         elif "getDevice" in url:
+            if device_responses is not None:
+                req_id = kwargs.get("json", {}).get("id")
+                return MockResponse(device_responses[req_id])
             return MockResponse(device_response)
         elif "setDevice" in url:
             return MockResponse({}, status=set_device_status)
@@ -218,4 +263,28 @@ async def setup_integration(hass: HomeAssistant, mock_session=None):
         await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
+    return entry
+
+
+def create_multi_unit_session():
+    """Mock session returning two Futura units."""
+    return create_mock_session(
+        service_list_response=MOCK_SERVICE_LIST_MULTI,
+        device_responses=MOCK_DEVICE_RESPONSES_MULTI,
+    )
+
+
+async def setup_integration_multi(hass: HomeAssistant):
+    """Set up the integration with a two-unit account."""
+    entry = MockConfigEntry(
+        domain=DOMAIN, title=MOCK_USERNAME, data=MOCK_CONFIG, unique_id=MOCK_USERNAME
+    )
+    entry.add_to_hass(hass)
+    session = create_multi_unit_session()
+    with patch(
+        "custom_components.jablotron_futura.futura.aiohttp_client.async_get_clientsession",
+        return_value=session,
+    ):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
     return entry

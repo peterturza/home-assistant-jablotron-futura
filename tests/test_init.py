@@ -183,3 +183,159 @@ async def test_unique_id_migration_isolates_other_entries(hass: HomeAssistant):
 
     after = registry.async_get(foreign.entity_id)
     assert after.unique_id == "filter_health"  # untouched
+
+
+async def test_unique_id_migration_skips_collision(hass: HomeAssistant):
+    """If the serial-prefixed target already exists, the legacy row is left as-is.
+
+    Regression for #10: a prior multi-unit boot can leave both a legacy
+    un-prefixed entity and its serial-prefixed counterpart in the registry.
+    Migrating the legacy one would collide and previously crashed setup with
+    `ValueError: Unique id '..._filter_health' is already in use`.
+    """
+    from homeassistant.helpers import entity_registry as er
+    from .conftest import MOCK_SERIAL, create_mock_entry, create_mock_session
+
+    entry = create_mock_entry()
+    entry.add_to_hass(hass)
+    registry = er.async_get(hass)
+
+    legacy = registry.async_get_or_create(
+        domain="sensor",
+        platform=DOMAIN,
+        unique_id="filter_health",
+        config_entry=entry,
+    )
+    prefixed = registry.async_get_or_create(
+        domain="sensor",
+        platform=DOMAIN,
+        unique_id=f"{MOCK_SERIAL}_filter_health",
+        config_entry=entry,
+    )
+
+    mock_session = create_mock_session()
+    with patch(
+        "custom_components.jablotron_futura.futura.aiohttp_client.async_get_clientsession",
+        return_value=mock_session,
+    ):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    # Setup must not crash on the collision.
+    assert entry.state is ConfigEntryState.LOADED
+    # The legacy row is left untouched; the prefixed row keeps its id.
+    assert registry.async_get(legacy.entity_id).unique_id == "filter_health"
+    assert (
+        registry.async_get(prefixed.entity_id).unique_id
+        == f"{MOCK_SERIAL}_filter_health"
+    )
+
+
+async def test_unique_id_migration_runs_for_multi_unit_legacy(hass: HomeAssistant):
+    """Legacy un-prefixed rows migrate to the primary unit's serial even with multiple units.
+
+    Pre-0.4.0 installs only ever had one (the primary) unit, so legacy entity
+    rows belong to it. Migrating them before platform setup lets the new
+    primary-unit entities reuse the rows and preserve history.
+    """
+    from homeassistant.helpers import entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from .conftest import (
+        MOCK_CONFIG,
+        MOCK_SERIAL,
+        MOCK_USERNAME,
+        create_multi_unit_session,
+    )
+
+    entry = MockConfigEntry(
+        domain=DOMAIN, title=MOCK_USERNAME, data=MOCK_CONFIG, unique_id=MOCK_USERNAME
+    )
+    entry.add_to_hass(hass)
+    registry = er.async_get(hass)
+
+    legacy = registry.async_get_or_create(
+        domain="sensor",
+        platform=DOMAIN,
+        unique_id="filter_health",
+        config_entry=entry,
+    )
+
+    with patch(
+        "custom_components.jablotron_futura.futura.aiohttp_client.async_get_clientsession",
+        return_value=create_multi_unit_session(),
+    ):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    # Primary unit is the first service (MOCK_SERIAL); legacy row migrated to it.
+    assert registry.async_get(legacy.entity_id).unique_id == f"{MOCK_SERIAL}_filter_health"
+
+
+async def test_two_devices_registered_for_multi_unit_account(hass: HomeAssistant):
+    """Both units must appear as distinct devices in the registry."""
+    from homeassistant.helpers import device_registry as dr
+    from .conftest import MOCK_SERIAL, MOCK_SERIAL_2, setup_integration_multi
+
+    await setup_integration_multi(hass)
+    registry = dr.async_get(hass)
+
+    assert registry.async_get_device(identifiers={(DOMAIN, MOCK_SERIAL)}) is not None
+    assert registry.async_get_device(identifiers={(DOMAIN, MOCK_SERIAL_2)}) is not None
+
+
+async def test_entities_created_per_unit(hass: HomeAssistant):
+    """Each unit gets its own serial-scoped entity in the registry."""
+    from homeassistant.helpers import entity_registry as er
+    from .conftest import MOCK_SERIAL, MOCK_SERIAL_2, setup_integration_multi
+
+    entry = await setup_integration_multi(hass)
+    registry = er.async_get(hass)
+
+    ids = {
+        e.unique_id
+        for e in er.async_entries_for_config_entry(registry, entry.entry_id)
+    }
+    assert f"{MOCK_SERIAL}_filter_health" in ids
+    assert f"{MOCK_SERIAL_2}_filter_health" in ids
+
+
+async def test_config_entry_unique_id_migrates_to_account(hass: HomeAssistant):
+    """An entry keyed on a unit serial must migrate to the account login."""
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from .conftest import (
+        MOCK_CONFIG,
+        MOCK_SERIAL,
+        MOCK_USERNAME,
+        create_mock_session,
+    )
+
+    entry = MockConfigEntry(
+        domain=DOMAIN, title="Futura 2", data=MOCK_CONFIG, unique_id=MOCK_SERIAL
+    )
+    entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.jablotron_futura.futura.aiohttp_client.async_get_clientsession",
+        return_value=create_mock_session(),
+    ):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert entry.unique_id == MOCK_USERNAME
+
+
+async def test_remove_config_entry_device(hass: HomeAssistant):
+    """Devices for absent units can be removed; current units cannot."""
+    from homeassistant.helpers import device_registry as dr
+    from custom_components.jablotron_futura import async_remove_config_entry_device
+    from .conftest import MOCK_SERIAL, setup_integration_multi
+
+    entry = await setup_integration_multi(hass)
+    registry = dr.async_get(hass)
+
+    current = registry.async_get_device(identifiers={(DOMAIN, MOCK_SERIAL)})
+    assert current is not None
+    stale = dr.DeviceEntry(identifiers={(DOMAIN, "SN000000000")})
+
+    assert await async_remove_config_entry_device(hass, entry, current) is False
+    assert await async_remove_config_entry_device(hass, entry, stale) is True

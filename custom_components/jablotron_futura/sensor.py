@@ -70,16 +70,17 @@ async def async_setup_entry(
     """Set up Futura sensors."""
     coordinator = entry.runtime_data
 
-    async_add_entities(
-        [
-            FuturaSummarySensorEntity(coordinator, description)
+    entities: list[SensorEntity] = []
+    for unit in coordinator.futura.units().values():
+        entities += [
+            FuturaSummarySensorEntity(coordinator, unit, description)
             for description in SUMMARY_SENSORS
         ]
-        + [
-            FuturaPeripherySensorEntity(coordinator, description)
+        entities += [
+            FuturaPeripherySensorEntity(coordinator, unit, description)
             for description in PERIPHERY_SENSORS
         ]
-    )
+    async_add_entities(entities)
 
 
 class FuturaSummarySensorEntity(FuturaEntity, SensorEntity):
@@ -87,21 +88,21 @@ class FuturaSummarySensorEntity(FuturaEntity, SensorEntity):
 
     entity_description: SensorEntityDescription
 
-    def __init__(self, coordinator, description: SensorEntityDescription) -> None:
-        super().__init__(coordinator)
+    def __init__(self, coordinator, central_unit, description: SensorEntityDescription) -> None:
+        super().__init__(coordinator, central_unit)
         self.entity_description = description
 
     @property
     def unique_id(self) -> str:
-        return f"{self._central_unit.serial_no}_{self.entity_description.key}"
+        return f"{self._serial}_{self.entity_description.key}"
 
     @property
     def available(self) -> bool:
-        return self.entity_description.key in self.coordinator.data["device"]["summary"]
+        return self.entity_description.key in self._device["summary"]
 
     @property
     def native_value(self) -> StateType | date | datetime:
-        return self.coordinator.data["device"]["summary"][self.entity_description.key]
+        return self._device["summary"][self.entity_description.key]
 
     @property
     def state_class(self) -> SensorStateClass | str | None:
@@ -109,7 +110,7 @@ class FuturaSummarySensorEntity(FuturaEntity, SensorEntity):
 
     @property
     def native_unit_of_measurement(self) -> str | None:
-        return self.coordinator.data["device"]["summary"][
+        return self._device["summary"][
             "{}_units".format(self.entity_description.key)
         ]
 
@@ -119,13 +120,13 @@ class FuturaPeripherySensorEntity(FuturaEntity, SensorEntity):
 
     entity_description: SensorEntityDescription
 
-    def __init__(self, coordinator, description: SensorEntityDescription) -> None:
-        super().__init__(coordinator)
+    def __init__(self, coordinator, central_unit, description: SensorEntityDescription) -> None:
+        super().__init__(coordinator, central_unit)
         self.entity_description = description
 
     @property
     def periphery(self) -> dict[str, Any] | None:
-        peripheries = self.coordinator.data["device"]["peripheries"]
+        peripheries = self._device["peripheries"]
         filtered = [
             p for p in peripheries if p["id"] == self.entity_description.key
         ]
@@ -137,7 +138,7 @@ class FuturaPeripherySensorEntity(FuturaEntity, SensorEntity):
 
     @property
     def unique_id(self) -> str:
-        return f"{self._central_unit.serial_no}_{self.entity_description.key}"
+        return f"{self._serial}_{self.entity_description.key}"
 
     @property
     def native_value(self) -> StateType | date | datetime:

@@ -21,12 +21,11 @@ async def async_setup_entry(
     """Set up Futura select entities."""
     coordinator = entry.runtime_data
 
-    async_add_entities(
-        [
-            FuturaControlFanPowerEntity(coordinator),
-            FuturaControlHumidityEntity(coordinator),
-        ]
-    )
+    entities = []
+    for unit in coordinator.futura.units().values():
+        entities.append(FuturaControlFanPowerEntity(coordinator, unit))
+        entities.append(FuturaControlHumidityEntity(coordinator, unit))
+    async_add_entities(entities)
 
 
 class FuturaControlFanPowerEntity(FuturaControlEntity, SelectEntity):
@@ -34,13 +33,13 @@ class FuturaControlFanPowerEntity(FuturaControlEntity, SelectEntity):
 
     _attr_name = "Fan Power"
 
-    def __init__(self, coordinator) -> None:
-        super().__init__("control_fan_power", None, coordinator)
+    def __init__(self, coordinator, central_unit) -> None:
+        super().__init__("control_fan_power", None, coordinator, central_unit)
 
     @property
     def options(self) -> list[str]:
         data = self.data()
-        device = self.coordinator.data["device"]
+        device = self._device
         airflow_units = device["summary"]["airflow_units"]
         airflows = [
             "{} {}".format(airflow, airflow_units)
@@ -67,7 +66,9 @@ class FuturaControlFanPowerEntity(FuturaControlEntity, SelectEntity):
         return self.options[int(data["extended_properties"]["value"])]
 
     async def async_select_option(self, option: str) -> None:
-        await self._futura.set_control("fan_power", self.options.index(option))
+        await self._futura.set_control(
+            self._serial, "fan_power", self.options.index(option)
+        )
         await self.coordinator.async_refresh()
 
 
@@ -76,8 +77,8 @@ class FuturaControlHumidityEntity(FuturaControlEntity, SelectEntity):
 
     _attr_name = "Humidity"
 
-    def __init__(self, coordinator) -> None:
-        super().__init__("control_humidity", None, coordinator)
+    def __init__(self, coordinator, central_unit) -> None:
+        super().__init__("control_humidity", None, coordinator, central_unit)
 
     @property
     def options(self) -> list[str]:
@@ -100,5 +101,5 @@ class FuturaControlHumidityEntity(FuturaControlEntity, SelectEntity):
             for opt in data["extended_properties"]["options"]
             if opt["title"] == option
         ][0]["id"]
-        await self._futura.set_control("humidity", value)
+        await self._futura.set_control(self._serial, "humidity", value)
         await self.coordinator.async_refresh()

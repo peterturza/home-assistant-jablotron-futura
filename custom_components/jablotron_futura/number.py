@@ -22,9 +22,8 @@ async def async_setup_entry(
     coordinator = entry.runtime_data
 
     async_add_entities(
-        [
-            FuturaControlTemperatureEntity(coordinator),
-        ]
+        FuturaControlTemperatureEntity(coordinator, unit)
+        for unit in coordinator.futura.units().values()
     )
 
 
@@ -33,8 +32,10 @@ class FuturaControlTemperatureEntity(FuturaControlEntity, NumberEntity):
 
     _attr_name = "Temperature"
 
-    def __init__(self, coordinator) -> None:
-        super().__init__("control_temperature", NumberDeviceClass.TEMPERATURE, coordinator)
+    def __init__(self, coordinator, central_unit) -> None:
+        super().__init__(
+            "control_temperature", NumberDeviceClass.TEMPERATURE, coordinator, central_unit
+        )
 
     @property
     def native_value(self) -> float | None:
@@ -57,5 +58,5 @@ class FuturaControlTemperatureEntity(FuturaControlEntity, NumberEntity):
         return self.data()["extended_properties"]["units"]
 
     async def async_set_native_value(self, value: float) -> None:
-        await self._futura.set_control("temperature", value)
+        await self._futura.set_control(self._serial, "temperature", value)
         await self.coordinator.async_refresh()
