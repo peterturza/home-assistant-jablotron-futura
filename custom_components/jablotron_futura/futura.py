@@ -23,6 +23,15 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity, UpdateFa
 _LOGGER = logging.getLogger(__name__)
 
 
+def _version_str(value: Any) -> str | None:
+    """Normalize an API version field for the device registry.
+
+    The API returns some version fields as JSON numbers; the device registry
+    requires strings (non-strings are rejected from HA 2026.12).
+    """
+    return None if value is None else str(value)
+
+
 class FuturaCentralUnit:
     """Represents Futura main unit"""
 
@@ -30,15 +39,15 @@ class FuturaCentralUnit:
         self,
         service_id: str,
         model: str,
-        hw_version: str,
-        fw_version: str,
+        hw_version: str | None,
+        fw_version: str | None,
         serial_no: str,
         room_id: str,
     ) -> None:
         self.service_id: str = service_id
         self.model: str = model
-        self.hw_version: str = hw_version
-        self.fw_version: str = fw_version
+        self.hw_version: str | None = hw_version
+        self.fw_version: str | None = fw_version
         self.serial_no: str = serial_no
         self.room_id: str = room_id
 
@@ -146,8 +155,8 @@ class Futura:
             units[serial_no] = FuturaCentralUnit(
                 service_id=device["id"],
                 model=device["type"],
-                hw_version=device["details"]["hw_revision"],
-                fw_version=device["details"]["fw_version"],
+                hw_version=_version_str(device["details"]["hw_revision"]),
+                fw_version=_version_str(device["details"]["fw_version"]),
                 serial_no=serial_no,
                 room_id=device["rooms"][0]["id"],
             )
