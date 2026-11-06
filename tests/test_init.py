@@ -339,3 +339,39 @@ async def test_remove_config_entry_device(hass: HomeAssistant):
 
     assert await async_remove_config_entry_device(hass, entry, current) is False
     assert await async_remove_config_entry_device(hass, entry, stale) is True
+
+
+async def test_device_versions_are_strings_when_api_returns_numbers(hass: HomeAssistant):
+    """Numeric hw_revision/fw_version from the API must reach the device registry as str (#14)."""
+    from homeassistant.helpers import device_registry as dr
+    from .conftest import MOCK_DEVICE_RESPONSE, MOCK_SERIAL
+    import copy
+
+    device_response = copy.deepcopy(MOCK_DEVICE_RESPONSE)
+    device_response["device"]["details"]["hw_revision"] = 3
+    device_response["device"]["details"]["fw_version"] = 125
+
+    await setup_integration(hass, create_mock_session(device_response=device_response))
+    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, MOCK_SERIAL)})
+
+    assert device is not None
+    assert device.hw_version == "3"
+    assert device.sw_version == "125"
+
+
+async def test_device_versions_stay_none_when_api_returns_null(hass: HomeAssistant):
+    """A null hw_revision/fw_version must stay None, not become the string "None" (#14)."""
+    from homeassistant.helpers import device_registry as dr
+    from .conftest import MOCK_DEVICE_RESPONSE, MOCK_SERIAL
+    import copy
+
+    device_response = copy.deepcopy(MOCK_DEVICE_RESPONSE)
+    device_response["device"]["details"]["hw_revision"] = None
+    device_response["device"]["details"]["fw_version"] = None
+
+    await setup_integration(hass, create_mock_session(device_response=device_response))
+    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, MOCK_SERIAL)})
+
+    assert device is not None
+    assert device.hw_version is None
+    assert device.sw_version is None

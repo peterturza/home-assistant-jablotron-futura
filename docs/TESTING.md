@@ -35,10 +35,22 @@ python -m pytest tests/ -v
 ### Start Dev HA Instance
 
 ```bash
-docker compose up -d
+docker compose up -d                      # HA 2026.11 (default)
+HA_VERSION=2025.1 docker compose up -d    # any other release, e.g. the hacs.json minimum
 ```
 
 Open http://localhost:8123 and complete the HA onboarding wizard.
+
+HA config lives in `./dev-config` (gitignored). Upgrading HA migrates it one-way — back it
+up (`tar czf dev-config-backup.tgz dev-config`) before switching to a newer `HA_VERSION`,
+and don't point an older HA at a config a newer one has already touched.
+
+Integration warnings and errors land in the log:
+
+```bash
+docker compose logs homeassistant | grep -i jablotron
+# or: grep -i jablotron dev-config/home-assistant.log
+```
 
 The integration code is mounted from `./custom_components` — changes are reflected after restarting the container:
 
@@ -63,6 +75,11 @@ docker compose down
 3. Enter your Jablotron cloud credentials
 4. **Expected**: Integration creates a device with all entities
 5. **Verify**: Device appears under Devices with model name, firmware, and hardware version
+6. **Verify (HA ≥ 2026.11, #14)**: the log has no
+   `passes a non-string value … to the device registry` warning for `jablotron_futura`:
+   `docker compose logs homeassistant | grep -i "non-string"` prints nothing.
+   In `dev-config/.storage/core.device_registry`, the Futura device's `hw_version` and
+   `sw_version` are JSON strings (quoted).
 
 ### 2. Invalid Credentials
 

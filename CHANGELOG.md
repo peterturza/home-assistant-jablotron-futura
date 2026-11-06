@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## Version 0.5.1
+
+- Device registry: pass `hw_version` / `sw_version` as strings. The API returns the hardware revision as a number, which Home Assistant 2026.12 rejects (#14)
+
+## Version 0.5.0
+
+- Multi-unit: every Futura unit on a Jablotron account becomes its own Home Assistant device with a full entity set (#10)
+- Config entry is keyed on the account login (lowercased); existing entries migrate automatically, entity history preserved
+- Devices whose unit has left the account can be removed from the UI
+
 ## Version 0.4.0
 
 - Auth: cache session token, only re-authorize on 401 (no more cleartext credentials every 5 minutes)
